@@ -189,6 +189,10 @@ public final class JavaFile {
             }
             Integer importCounter = importsCounterMap.get(className.packageName());
             ImportDefinition impDef = imports.get(className.packageName());
+            if (impDef == null) {
+                // try to find wildcard from
+                impDef = imports.get(className.packageName() + ".*");
+            }
             String importName;
             if (impDef != null) {
                 if (importCounter >= impDef.getWildcardReplace()
@@ -209,7 +213,8 @@ public final class JavaFile {
                     importName = className.canonicalName;
                 }
             }
-            if (!processedPackages.contains(importName)) {
+            if (!processedPackages.contains(importName)
+                    && !processedPackages.contains(className.packageName() + ".*")) {
                 codeWriter.emit("import $L;\n", importName);
                 processedPackages.add(importName);
                 importedTypesCount++;
@@ -371,6 +376,7 @@ public final class JavaFile {
         public Builder addImportWildcardHint(String importName, int wildcardReplace) {
             checkArgument(importName != null, "importName == null");
             checkArgument(!importName.isEmpty(), "importName is empty");
+            checkArgument(!importName.contains(".*"), "invalid import name %s", importName);
             checkArgument(wildcardReplace >= 1, "wildcardReplace < 1");
             if (imports.containsKey(importName)) {
                 throw new IllegalArgumentException("Duplicate import " + importName);
@@ -424,9 +430,6 @@ public final class JavaFile {
         private final int wildcardReplace;
 
         ImportDefinition(String importName, int wildcardReplace) {
-            checkArgument(importName != null, "importName == null");
-            checkArgument(!importName.isEmpty(), "importName is empty");
-            checkArgument(wildcardReplace >= 0, "wildcardReplace < 0");
             this.importName = importName;
             this.wildcardReplace = wildcardReplace;
         }
